@@ -108,20 +108,20 @@
                     <h4 style="margin-bottom: 13px;">Description:<%= event[i].description %></h4>
                     <h4 style="margin-bottom: 13px;">Time:<%= event[i].time %></h4>
                     <h4 style="margin-bottom: 13px;">Mode:<%= event[i].mode %></h4>
-                    <h4 style="margin-bottom: 13px;">DateStarted:<%= event[i].dateStart %></h4>
+                    <h4 style="margin-bottom: 13px;">DateStarted:<%= event[i].datestart %></h4>
                     <h4 style="margin-bottom: 13px;">DateEnd:<%= event[i].dateEnd %></h4>
                     <h4 style="margin-bottom: 13px;">Category:<%= event[i].category %></h4>
                     <h4 style="margin-bottom: 13px;">RegisterationFee:<%= event[i].registerationFee %></h4>
-                    <h4 style="margin-bottom: 13px;">Cashprize:<%= event[i].cashPrice %></h4>
+                    <h4 style="margin-bottom: 13px;">Cashprize:<%= event[i].cashprice %></h4>
                     <h4 style="margin-bottom: 13px;">Contact No:<%= event[i].contact %></h4>
 
 
                     <center>
                        <div class="formact">
-                        <form action='/updateEvent/<%=event[i]._id%>' method="POST" >
+                        <form action='/updateEvent/<%=event[i].id%>' method="POST" >
                            <input type="submit" value="Update" class="regbtn">
                         </form>
-                        <form action='/deleteEvents/<%=event[i]._id%>' method="POST" >
+                        <form action='/deleteEvents/<%=event[i].id%>' method="POST" >
                           <input type="submit" value="Delete" class="regbtn">
                         </form> 
                         </div>

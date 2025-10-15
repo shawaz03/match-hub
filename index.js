@@ -1,30 +1,19 @@
-const express = require("express");
 require('dotenv').config({path: __dirname + '/.env'})
-const mongoose = require("mongoose");
+const express = require("express");
 const bodyParser = require("body-parser");
-const eventModule = require("./models/events");
-const RegisterModule = require("./models/RegisterModel");
 const LocalStorage = require('node-localstorage').LocalStorage
 localStorage = new LocalStorage('./scratch')
-const { json } = require('body-parser')
-const eventRegistration = require('./models/Registration')
+const { createClient } = require('@supabase/supabase-js')
 
+const SUPABASE_URL = 'https://mbaaissbqqemmeibiodz.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iYWFpc3NicXFlbW1laWJpb2R6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzNzAwODAsImV4cCI6MjA3NTk0NjA4MH0.eHwaL0uyYiIM2HziN7S8-GBnjcpHRMBhUvofoWH6uZw'
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 app.use(express.static("public"));
-
-mongoose.set("strictQuery", false);
-mongoose
-  .connect(
-    process.env.MONGODB,
-    { useNewUrlParser: true, useUnifiedTopology: true }
-  )
-  .then(console.log("MongoDB Connected..."))
-  .catch((err) => console.log(err));
-
 app.use(express.json());
 
 
@@ -38,10 +27,14 @@ app.get("/details", (req, res) => {
 
 
 
-app.get("/", (req, res) => {
-  eventModule.find({}).then((data) => {
+app.get("/", async (req, res) => {
+  const { data, error } = await supabase.from('events').select('*')
+  if (error) {
+    console.log(error);
+    res.render("index", { event: [] });
+  } else {
     res.render("index", { event: data });
-  })
+  }
 });
 app.get("/loginUser", (req, res) => {
   res.render('login')
@@ -52,14 +45,32 @@ app.get("/registerUser", (req, res) => {
 app.get("/contactUs", (req, res) => {
   res.render('contact')
 })
+app.post("/submitContact", async (req, res) => {
+  const { name, email, subject, message } = req.body;
+  
+  try {
+    // You can store contact messages in Supabase if you have a contacts table
+    // For now, we'll just log it and redirect back
+    console.log('Contact Form Submission:', { name, email, subject, message });
+    
+    // Redirect back to contact page with success
+    res.redirect('/contactUs');
+  } catch (error) {
+    console.error('Contact form error:', error);
+    res.redirect('/contactUs');
+  }
+})
 app.get("/about", (req, res) => {
   res.render('about')
 })
-app.get("/checkevents", (req, res) => {
-  eventModule.find({}).then((data) => {
+app.get("/checkevents", async (req, res) => {
+  const { data, error } = await supabase.from('events').select('*')
+  if (error) {
+    console.log(error);
+    res.render("events", { event: [] });
+  } else {
     res.render("events", { event: data });
-  })
-
+  }
 })
 app.get("/logout", (req, res) => {
   localStorage.clear()
@@ -79,20 +90,31 @@ app.get("/addEvent", async (req, res) => {
 })
 // admin updating part
 app.post("/updateEvent/:id", async (req, res) => {
-
   try {
-    eventModule.findById(req.params.id).then((data) => {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', req.params.id)
+      .single()
+    
+    if (error) {
+      res.json({ message: error.message });
+    } else {
       console.log(data);
       res.render('updateEvent', { data: data })
-    })
+    }
   } catch (err) {
     res.json({ message: err });
   }
 })
-app.get("/viewevents", (req, res) => {
-  eventModule.find({}).then((data) => {
+app.get("/viewevents", async (req, res) => {
+  const { data, error } = await supabase.from('events').select('*')
+  if (error) {
+    console.log(error);
+    res.render("adminViewEvents", { event: [] });
+  } else {
     res.render("adminViewEvents", { event: data });
-  })
+  }
 })
 
 //2. CRUD OPERATIONS
@@ -100,65 +122,86 @@ app.get("/viewevents", (req, res) => {
 //create
 app.post("/create", async (req, res) => {
   console.log(req.body);
-  const event = new eventModule({
+  
+  const eventData = {
     name: req.body.name,
     description: req.body.description,
     photo: req.body.photo,
     time: req.body.time,
     mode: req.body.mode,
-    dateStart: req.body.dateStart,
-    dateEnd: req.body.dateEnd,
+    datestart: req.body.dateStart,
+    dateend: req.body.dateEnd,
     venue: req.body.venue,
-    category: req.body.category,
-    registerationFee: req.body.registerationFee,
-    cashPrice: req.body.cashPrice,
+    eventcategory: req.body.category,
+    registerationfee: req.body.registerationFee,
+    cashprice: req.body.cashPrice,
     contact: req.body.contact
-  });
+  };
 
   try {
-    await event.save();
-    res.redirect("/viewevents");
+    const { data, error } = await supabase
+      .from('events')
+      .insert([eventData])
+      
+    if (error) {
+      res.json({ message: error.message });
+    } else {
+      res.redirect("/viewevents");
+    }
   } catch (err) {
     res.json({ message: err });
   }
 });
 
 //show all events for clients
-
 app.get("/showAllEvents", async (req, res) => {
   try {
-    const events = await eventModule.find();
-    // res.json({ events });
-
-
-    eventModule.find({}).then((data) => {
+    const { data, error } = await supabase.from('events').select('*')
+    
+    if (error) {
+      res.json({ message: error.message });
+    } else {
       res.render("showevent", { event: data });
-    })
+    }
   } catch (err) {
     res.json({ message: err });
   }
 });
 
 
-app.get("/fetchdetails/:id",function(req,res){
+app.get("/fetchdetails/:id", async function(req,res){
   try{
-    eventModule.findById(req.params.id).then((data)=>{
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', req.params.id)
+      .single()
+    
+    if (error) {
+      res.json({ message: error.message });
+    } else {
       res.render("details",{event:data})
-    })
+    }
   }
   catch(err){
     res.json({ message: err });
   }
-
-
 });
 
 //read
 app.get("/events/:eventId", async (req, res) => {
   try {
-    const event = await eventModule.findById(req.params.eventId);
-    // res.json({ event });
-    res.render("details")
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', req.params.eventId)
+      .single()
+    
+    if (error) {
+      res.json({ message: error.message });
+    } else {
+      res.render("details", { event: data })
+    }
   } catch (err) {
     res.json({ message: err });
   }
@@ -180,31 +223,34 @@ app.post("/events/:eventId", async (req, res) => {
     cashPrice,
     contact
   } = req.body;
+  
   try {
-    const updatedEvent = await eventModule.findByIdAndUpdate(
-      req.params.eventId,
-      {
+    const { data, error } = await supabase
+      .from('events')
+      .update({
         name,
         description,
         photo,
         time,
         mode,
-        dateStart,
-        dateEnd,
+        datestart: dateStart,
+        dateend: dateEnd,
         venue,
-        category,
-        registerationFee,
-        cashPrice,
+        eventcategory: category,
+        registerationfee: registerationFee,
+        cashprice: cashPrice,
         contact
-      }
-    );
+      })
+      .eq('id', req.params.eventId)
+      .select()
 
-    if (!updatedEvent) {
+    if (error) {
+      res.json({ message: error.message });
+    } else if (!data || data.length === 0) {
       res.json({ message: "Event not found" });
+    } else {
+      res.redirect("/viewevents");
     }
-
-    updatedEvent = await updatedEvent.save();
-    res.redirect("/viewevents");
   } catch (err) {
     res.redirect("/viewevents");
   }
@@ -213,47 +259,68 @@ app.post("/events/:eventId", async (req, res) => {
 //delete
 app.post("/deleteEvents/:eventId", async (req, res) => {
   try {
-    const removedEvent = await eventModule.findByIdAndRemove(
-      req.params.eventId
-    );
-    res.redirect("/viewevents")
+    const { data, error } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', req.params.eventId)
+    
+    if (error) {
+      res.json({ message: error.message });
+    } else {
+      res.redirect("/viewevents")
+    }
   } catch (err) {
     res.json({ message: err });
   }
 });
 
 // User Registering for an event + Payments
-
 app.post("/testing", async(req,res)=>{
-    const register = new eventRegistration({
-      name:req.body.name,
-      email:req.body.email,
-      phnumber:req.body.mobile,
-      year:req.body.yos,
-      event:req.body.events,
-      amount:req.body.amount,
-      transactionid:req.body.transactionid
-    })
+  const registrationData = {
+    name: req.body.name,
+    email: req.body.email,
+    phnumber: req.body.mobile,
+    year: req.body.yos,
+    event: req.body.events,
+    amount: req.body.amount,
+    transactionid: req.body.transactionid
+  }
 
-    try{
-      await register.save();
-      res.redirect("/checkevents")
-
+  try{
+    const { data, error } = await supabase
+      .from('event_registrations')
+      .insert([registrationData])
+    
+    if (error) {
+      console.log(error);
+      res.json({ message: error.message });
+    } else {
+      res.redirect("/checkevents?success=true")
     }
-    catch(err){
-      console.log(err);
-    }
+  }
+  catch(err){
+    console.log(err);
+    res.json({ message: err });
+  }
 })
 
 // admin view for viewing student Registrations...
 app.get("/viewRegistrations", async(req,res)=>{
   try{
-    eventRegistration.find({}).then((data) =>{
+    const { data, error } = await supabase
+      .from('event_registrations')
+      .select('*')
+    
+    if (error) {
+      console.log(error);
+      res.render("adminViewRegistrations", {event: []});
+    } else {
       console.log(data);
       res.render("adminViewRegistrations", {event: data});
-    })
+    }
   }catch(err){
     console.log(err);
+    res.json({ message: err });
   }
 })
 
@@ -261,18 +328,22 @@ app.get("/viewRegistrations", async(req,res)=>{
 // 3.Logins and Register
 
 //Login route started
-
-app.post("/login", function (req, res) {
+app.post("/login", async function (req, res) {
   const email = req.body.email;
   const password = req.body.password;
+  
   if (email == process.env.ADMINUSER && password == process.env.ADMINPASSWORD) {
-
     res.redirect("/admindashboard")
   }
   else{
-  RegisterModule.findOne({ email: email })
-    .then((data) => {
-      if (data == null) {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single()
+      
+      if (error || !data) {
         res.redirect("/registerUser")
       }
       else if (data.password != password) {
@@ -282,38 +353,51 @@ app.post("/login", function (req, res) {
         localStorage.setItem("users", JSON.stringify(data))
         res.redirect("/");
       }
-    })
-    .catch((err) => {
+    } catch (err) {
       console.log(err);
-    });
+      res.redirect("/registerUser")
+    }
   }
-
 });
 //login route completed
 
 //Register route 
-app.post("/register", function (req, res) {
+app.post("/register", async function (req, res) {
   const username = req.body.username;
   const email = req.body.email;
   const password = req.body.password;
-  const user = new RegisterModule({
-    username: username,
-    email: email,
-    password: password
-  })
-  RegisterModule.findOne({ email: email }, function (err, data) {
-    if (err) {
-      console.log(err)
-    }
-    else if (data) {
+  
+  try {
+    // Check if user already exists
+    const { data: existingUser, error: checkError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single()
+    
+    if (existingUser) {
       res.redirect("/loginUser")
+    } else {
+      // Create new user
+      const { data, error } = await supabase
+        .from('users')
+        .insert([{
+          username: username,
+          email: email,
+          password: password
+        }])
+      
+      if (error) {
+        console.log(error)
+        res.json({ message: error.message });
+      } else {
+        res.redirect("/loginUser")
+      }
     }
-    else {
-      user.save()
-      res.redirect("/loginUser")
-    }
-  })
-
+  } catch (err) {
+    console.log(err)
+    res.json({ message: err });
+  }
 })
 //register route completed  
 
