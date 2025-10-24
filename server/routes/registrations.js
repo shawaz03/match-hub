@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { auth, isOrganizerOrAdmin } = require('../middleware/auth');
+const { registrationLimiter } = require('../middleware/rateLimiter');
 const registrationController = require('../controllers/registrationController');
 
 // Protected routes (all require authentication)
-router.post('/', auth, registrationController.createRegistration);
+router.post('/', auth, registrationLimiter, registrationController.createRegistration);
 router.get('/my-registrations', auth, registrationController.getUserRegistrations);
 router.get('/:id', auth, registrationController.getRegistrationById);
 router.put('/:id/cancel', auth, registrationController.cancelRegistration);
