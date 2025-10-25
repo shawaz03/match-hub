@@ -5,15 +5,12 @@ const session = require('express-session');
 const cookieParser = require('cookie-parser');
 const { createClient } = require('@supabase/supabase-js')
 
-// Use environment variables for Supabase credentials
+// Use environment variables for Supabase credentials with fallback
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://mbaaissbqqemmeibiodz.supabase.co'
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iYWFpc3NicXFlbW1laWJpb2R6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzNzAwODAsImV4cCI6MjA3NTk0NjA4MH0.eHwaL0uyYiIM2HziN7S8-GBnjcpHRMBhUvofoWH6uZw'
 
-// Validate environment variables
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    console.error('ERROR: Missing Supabase credentials. Please set SUPABASE_URL and SUPABASE_ANON_KEY environment variables.');
-    process.exit(1);
-}
+console.log('Environment:', process.env.NODE_ENV);
+console.log('Supabase URL configured:', SUPABASE_URL ? 'Yes' : 'No');
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
@@ -56,13 +53,18 @@ app.get("/details", (req, res) => {
 
 
 
-app.get("/", async (req, res) => {
-  const { data, error } = await supabase.from('events').select('*')
-  if (error) {
-    console.log(error);
-    res.render("index", { event: [], currentUser: req.session.user || null });
-  } else {
-    res.render("index", { event: data, currentUser: req.session.user || null });
+app.get("/", async (req, res, next) => {
+  try {
+    const { data, error } = await supabase.from('events').select('*')
+    if (error) {
+      console.log('Supabase error:', error);
+      res.render("index", { event: [], currentUser: req.session.user || null });
+    } else {
+      res.render("index", { event: data, currentUser: req.session.user || null });
+    }
+  } catch (err) {
+    console.error('Route error:', err);
+    next(err);
   }
 });
 app.get("/loginUser", (req, res) => {
@@ -449,6 +451,20 @@ app.post("/register", async function (req, res) {
 
 //server starting
 const PORT = process.env.PORT || 3000;
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  res.status(500).json({ 
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'production' ? 'Something went wrong' : err.message 
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).send('Page not found');
+});
 
 // For local development
 if (process.env.NODE_ENV !== 'production') {
