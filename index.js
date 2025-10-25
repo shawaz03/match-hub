@@ -49,7 +49,7 @@ app.use((req, res, next) => {
 
 // 1. Rendering Files
 app.get("/details", (req, res) => {
-  res.render('details')
+  res.render('details', { event: {}, currentUser: req.session.user || null })
 });
 
 
@@ -135,7 +135,7 @@ app.post("/updateEvent/:id", async (req, res) => {
       res.json({ message: error.message });
     } else {
       console.log(data);
-      res.render('updateEvent', { data: data })
+      res.render('updateEvent', { data: data, currentUser: req.session.user || null })
     }
   } catch (err) {
     res.json({ message: err });
@@ -145,9 +145,9 @@ app.get("/viewevents", async (req, res) => {
   const { data, error } = await supabase.from('events').select('*')
   if (error) {
     console.log(error);
-    res.render("adminViewEvents", { event: [] });
+    res.render("adminViewEvents", { event: [], currentUser: req.session.user || null });
   } else {
-    res.render("adminViewEvents", { event: data });
+    res.render("adminViewEvents", { event: data, currentUser: req.session.user || null });
   }
 })
 
@@ -195,7 +195,7 @@ app.get("/showAllEvents", async (req, res) => {
     if (error) {
       res.json({ message: error.message });
     } else {
-      res.render("showevent", { event: data });
+      res.render("showevent", { event: data, currentUser: req.session.user || null });
     }
   } catch (err) {
     res.json({ message: err });
@@ -234,7 +234,7 @@ app.get("/events/:eventId", async (req, res) => {
     if (error) {
       res.json({ message: error.message });
     } else {
-      res.render("details", { event: data })
+      res.render("details", { event: data, currentUser: req.session.user || null })
     }
   } catch (err) {
     res.json({ message: err });
@@ -347,10 +347,10 @@ app.get("/viewRegistrations", async(req,res)=>{
     
     if (error) {
       console.log(error);
-      res.render("adminViewRegistrations", {event: []});
+      res.render("adminViewRegistrations", {event: [], currentUser: req.session.user || null});
     } else {
       console.log(data);
-      res.render("adminViewRegistrations", {event: data});
+      res.render("adminViewRegistrations", {event: data, currentUser: req.session.user || null});
     }
   }catch(err){
     console.log(err);
