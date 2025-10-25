@@ -5,8 +5,16 @@ const LocalStorage = require('node-localstorage').LocalStorage
 localStorage = new LocalStorage('./scratch')
 const { createClient } = require('@supabase/supabase-js')
 
-const SUPABASE_URL = 'https://mbaaissbqqemmeibiodz.supabase.co'
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iYWFpc3NicXFlbW1laWJpb2R6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzNzAwODAsImV4cCI6MjA3NTk0NjA4MH0.eHwaL0uyYiIM2HziN7S8-GBnjcpHRMBhUvofoWH6uZw'
+// Use environment variables for Supabase credentials
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://mbaaissbqqemmeibiodz.supabase.co'
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iYWFpc3NicXFlbW1laWJpb2R6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzNzAwODAsImV4cCI6MjA3NTk0NjA4MH0.eHwaL0uyYiIM2HziN7S8-GBnjcpHRMBhUvofoWH6uZw'
+
+// Validate environment variables
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.error('ERROR: Missing Supabase credentials. Please set SUPABASE_URL and SUPABASE_ANON_KEY environment variables.');
+    process.exit(1);
+}
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 const app = express();
