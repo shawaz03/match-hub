@@ -60,19 +60,19 @@ app.get("/", async (req, res) => {
   const { data, error } = await supabase.from('events').select('*')
   if (error) {
     console.log(error);
-    res.render("index", { event: [] });
+    res.render("index", { event: [], currentUser: req.session.user || null });
   } else {
-    res.render("index", { event: data });
+    res.render("index", { event: data, currentUser: req.session.user || null });
   }
 });
 app.get("/loginUser", (req, res) => {
-  res.render('login')
+  res.render('login', { currentUser: req.session.user || null })
 });
 app.get("/registerUser", (req, res) => {
-  res.render('signup')
+  res.render('signup', { currentUser: req.session.user || null })
 });
 app.get("/contactUs", (req, res) => {
-  res.render('contact')
+  res.render('contact', { currentUser: req.session.user || null })
 })
 app.post("/submitContact", async (req, res) => {
   const { name, email, subject, message } = req.body;
@@ -90,15 +90,15 @@ app.post("/submitContact", async (req, res) => {
   }
 })
 app.get("/about", (req, res) => {
-  res.render('about')
+  res.render('about', { currentUser: req.session.user || null })
 })
 app.get("/checkevents", async (req, res) => {
   const { data, error } = await supabase.from('events').select('*')
   if (error) {
     console.log(error);
-    res.render("events", { event: [] });
+    res.render("events", { event: [], currentUser: req.session.user || null });
   } else {
-    res.render("events", { event: data });
+    res.render("events", { event: data, currentUser: req.session.user || null });
   }
 })
 app.get("/logout", (req, res) => {
@@ -214,7 +214,7 @@ app.get("/fetchdetails/:id", async function(req,res){
     if (error) {
       res.json({ message: error.message });
     } else {
-      res.render("details",{event:data})
+      res.render("details",{event:data, currentUser: req.session.user || null})
     }
   }
   catch(err){
