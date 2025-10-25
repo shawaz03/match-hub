@@ -19,13 +19,12 @@
                 <li><a href="/" class="nav-link active">Home</a></li>
                 <li><a href="#events" class="nav-link">Events</a></li>
                 <li><a href="/contactUs" class="nav-link">Contact Us</a></li>
-                <% var Currentuser = JSON.parse(localStorage.getItem("users")) %>
-                <% if(Currentuser == null) { %>
+                <% if(!currentUser) { %>
                     <li><a href="/loginUser" class="nav-link">Login</a></li>
                     <li><a href="/registerUser" class="btn btn-primary" style="padding:0.5rem 1.5rem;">Sign Up</a></li>
                 <% } %>
-                <% if(Currentuser != null) { %>
-                    <li><a href="/" class="nav-link"><i class="fas fa-user"></i> <%= Currentuser.username %></a></li>
+                <% if(currentUser) { %>
+                    <li><a href="/" class="nav-link"><i class="fas fa-user"></i> <%= currentUser.username || currentUser.email %></a></li>
                     <li><a href="/logout" class="btn btn-accent" style="padding:0.5rem 1.5rem;">Logout</a></li>
                 <% } %>
             </ul>

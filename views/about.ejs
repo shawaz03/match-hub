@@ -408,15 +408,14 @@ section {
                   >Contact-Us</a
                 >
               </li>
-              <% var Currentuser=JSON.parse(localStorage.getItem("users")) %> <%
-              if(Currentuser==null) { %>
+              <% if(!currentUser) { %>
               <li><a href="/loginUser" class="nav-link">Login</a></li>
               <li><a href="/registerUser" class="nav-link">Sign-Up</a></li>
-              <% } %> <% if(Currentuser!=null) { %>
+              <% } %> <% if(currentUser) { %>
               <li><a href="/logout" class="nav-link">Logout</a></li>
               <li>
                 <a href="#" class="nav-link"
-                  ><%= Currentuser.username %></a
+                  ><%= currentUser.username || currentUser.email %></a
                 >
               </li>
               <% } %>

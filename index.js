@@ -1,8 +1,8 @@
 require('dotenv').config({path: __dirname + '/.env'})
 const express = require("express");
 const bodyParser = require("body-parser");
-const LocalStorage = require('node-localstorage').LocalStorage
-localStorage = new LocalStorage('./scratch')
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
 const { createClient } = require('@supabase/supabase-js')
 
 // Use environment variables for Supabase credentials
@@ -18,11 +18,32 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 const app = express();
+
+// Session configuration for Vercel serverless
+app.use(cookieParser());
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'match-hub-secret-key-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 app.use(express.static("public"));
 app.use(express.json());
+
+// Middleware to pass user session to all views
+app.use((req, res, next) => {
+  res.locals.currentUser = req.session.user || null;
+  res.locals.isAdmin = req.session.isAdmin || false;
+  next();
+});
 
 
 
@@ -81,8 +102,13 @@ app.get("/checkevents", async (req, res) => {
   }
 })
 app.get("/logout", (req, res) => {
-  localStorage.clear()
-  res.redirect('/')
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Session destroy error:', err);
+    }
+    res.clearCookie('connect.sid');
+    res.redirect('/');
+  });
 })
 
 
@@ -341,7 +367,12 @@ app.post("/login", async function (req, res) {
   const password = req.body.password;
   
   if (email == process.env.ADMINUSER && password == process.env.ADMINPASSWORD) {
-    res.redirect("/admindashboard")
+    req.session.isAdmin = true;
+    req.session.user = { email: email, role: 'admin' };
+    req.session.save((err) => {
+      if (err) console.error('Session save error:', err);
+      res.redirect("/admindashboard");
+    });
   }
   else{
     try {
@@ -356,10 +387,17 @@ app.post("/login", async function (req, res) {
       }
       else if (data.password != password) {
         res.write("<div style='margin:auto; align-items:center;margin-top:50px;width:24%;height:15%;padding:10px;'><h1 style='margin-top:4px'>Invalid credentials<br><a href='/loginUser'>Back to Login Page</a></h1></div>")
+        res.end();
       }
       else {
-        localStorage.setItem("users", JSON.stringify(data))
-        res.redirect("/");
+        // Store user in session instead of localStorage
+        req.session.user = data;
+        req.session.save((err) => {
+          if (err) {
+            console.error('Session save error:', err);
+          }
+          res.redirect("/");
+        });
       }
     } catch (err) {
       console.log(err);
@@ -409,17 +447,15 @@ app.post("/register", async function (req, res) {
 })
 //register route completed  
 
-
-
-
-
-
-
-
-
-
-
 //server starting
-app.listen(3000, () => {
-  console.log("Server is running");
-});
+const PORT = process.env.PORT || 3000;
+
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
+
+// Export for Vercel serverless
+module.exports = app;
