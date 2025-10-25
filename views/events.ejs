@@ -42,7 +42,7 @@
         <div class="events-grid">
             <% if(event && event.length > 0) { %>
                 <% event.forEach(function(evt, index) { %>
-                    <div class="event-card fade-in" style="animation-delay:<%= index * 0.05 %>s;">
+                    <div class="event-card fade-in" data-index="<%= index %>">
                         <img src="<%= evt.photo || '/images/logo.png' %>" alt="<%= evt.name %>" class="event-card-image" onerror="this.src='/images/logo.png'" loading="lazy" />
                         <div class="event-card-content">
                             <span class="event-card-date"><i class="fas fa-calendar"></i> <%= evt.datestart ? new Date(evt.datestart).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : 'TBA' %></span>
@@ -124,6 +124,15 @@
     </style>
 
     <script>
+        // Set animation delays dynamically
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.event-card');
+            cards.forEach(function(card) {
+                const index = card.getAttribute('data-index');
+                card.style.animationDelay = (index * 0.05) + 's';
+            });
+        });
+        
         // Optimized scroll handler with throttling
         let scrollTimeout;
         let ticking = false;
